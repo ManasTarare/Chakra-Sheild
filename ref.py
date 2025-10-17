@@ -11,7 +11,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx
-
+import matplotlib.pyplot as plt
 
 # Widen page layout
 st.set_page_config(page_title="Advanced Insider Threat Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -439,4 +439,5 @@ with tab3:
                     st.write("- " + line)
             else:
                 st.info("User flagged as threat but no specific indicators found in activity logs.")
+
 
