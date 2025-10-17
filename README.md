@@ -29,11 +29,6 @@ Python 3.8 or higher
 
 Packages listed in requirements.txt including tensorflow, scikit-learn, pandas, streamlit, plotly, networkx
 
-Clone the repository:
-
-bash
-git clone https://github.com/your-repo/insider-threat-dashboard.git
-cd insider-threat-dashboard
 Create and activate a virtual environment:
 
 bash
@@ -50,9 +45,10 @@ Place your activity data (activity_data.csv), anomaly scores (lstm_anomalies.csv
 Run the dashboard:
 
 bash
-streamlit run advanced_dashboard.py
+streamlit run web.py
+
 Usage
-Use sidebar filters to adjust recent activity windows, threat thresholds, and number of top risky users displayed.
+Use sidebar filters to adjust recent threat thresholds, and number of top risky users displayed.
 
 Navigate through tabs to access overall metrics, top risky users, and detailed user analysis with rich visualizations.
 
@@ -66,16 +62,6 @@ Combines unsupervised ML and domain heuristics for robust risk scoring.
 Integrates explainability for transparency and trust in alerts.
 
 Customizable UI with modern design enhancements.
-
-Limitations & Future Work
-Currently batch-based; real-time data streaming integration remains to be developed.
-
-Image background and UI styling can be further personalized.
-
-Additional contextual data (e.g., network logs, geolocation) could enrich threat detection.
-
-Contributing
-Contributions are welcome! Please fork the repository and submit pull requests for enhancements, bug fixes, or new features.
 
 License
 This project is open-source under the MIT License.
