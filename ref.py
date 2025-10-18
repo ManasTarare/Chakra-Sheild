@@ -266,11 +266,12 @@ with tab3:
     selected_user_id = st.selectbox("Select a User", sorted(dashboard_users['user_id'].unique()))
     if selected_user_id:
         user_info = dashboard_users[dashboard_users['user_id'] == selected_user_id].iloc[0]
+        user_name = user_info['user_name']
         dept = user_info['department']
         score = user_info['threat_score']
         last_seen = user_info['last_seen']
 
-
+        st.subheader(f"👤 {user_name} ({selected_user_id})")
         st.write(f"**Department:** {dept}")
         st.write(f"**Current Threat Score:** {score}")
         st.write(f"**Last Seen:** {last_seen}")
