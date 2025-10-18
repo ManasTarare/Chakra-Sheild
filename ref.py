@@ -210,38 +210,46 @@ tab1, tab2, tab3 = st.tabs(["📊 Overview", "🔥 Top Risky Users", "🔍 User 
 
 # Overview tab
 with tab1:
-    total_users = dashboard_users['user_id'].nunique()
-    above_threshold = (dashboard_users['threat_score'] >= threshold_value).sum()
-    avg_score = dashboard_users['threat_score'].mean().round(2)
-    recent_active = dashboard_users[dashboard_users['last_seen'] >= (pd.Timestamp.now() - timedelta(days=recent_days))]['user_id'].nunique()
-    dept_count = dashboard_users['department'].nunique()
+    k1, k2, k3, k4 = st.columns(4)
+    total_users = dashboard_users["user_id"].nunique()
+    becoming_count = int((dashboard_users["threat_score"] >= threshold_value).sum())
+    avg_score = dashboard_users["threat_score"].mean().round(2)
+    now = pd.Timestamp.now()
+    recent_active = 0
+    if "last_seen" in dashboard_users.columns and dashboard_users["last_seen"].notna().any():
+        recent_active = int(dashboard_users[dashboard_users["last_seen"] >= (now - timedelta(days=recent_days))]["user_id"].nunique())
+    k1.metric("👥 Total users", total_users)
+    k2.metric("🚨 Above Threshold", becoming_count)
+    k3.metric("📈 Avg Threat Score", f"{avg_score:.2f}")
+    k4.metric(f"🟢 Active (last {recent_days}d)", recent_active)
 
-    col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("👥 Total Users", total_users)
-    col2.metric("🚨 Above Threshold", above_threshold)
-    col3.metric("📈 Avg Threat Score", avg_score)
-    col4.metric(f"🟢 Active (last {recent_days}d)", recent_active)
-    col5.metric("🏢 Departments", dept_count)
+    st.markdown("### 🏢 Department Insights")
+    col1, col2 = st.columns(2)
+    with col1:
+        dept_rank = dashboard_users.groupby("department").agg(
+            avg_threat_score=("threat_score", "mean"),
+            above_threshold=("threat_score", lambda s: (s >= threshold_value).sum())
+        ).reset_index().sort_values("avg_threat_score", ascending=True)
+        if not dept_rank.empty:
+            fig_rank = px.bar(
+                dept_rank, x="avg_threat_score", y="department", orientation="h",
+                color="avg_threat_score", color_continuous_scale=px.colors.sequential.OrRd,
+                text="above_threshold", title="Departments by Avg Threat Score"
+            )
+            fig_rank.update_traces(texttemplate="%{text} threats", textposition="inside")
+            st.plotly_chart(fig_rank, use_container_width=True)
 
-    dept_stats = dashboard_users.groupby('department').agg(
-        avg_threat_score=('threat_score', 'mean'),
-        above_threshold_count=('threat_score', lambda s: (s >= threshold_value).sum()),
-        employee_count=('user_id', 'nunique')
-    ).reset_index()
+    with col2:
+        emp_count = dashboard_users.groupby("department")["user_id"].nunique().reset_index()
+        emp_count.columns = ["Department", "Employee Count"]
+        if not emp_count.empty:
+            fig_pie = px.pie(emp_count, values="Employee Count", names="Department", hole=0.3,
+                             color="Department", color_discrete_sequence=px.colors.sequential.OrRd)
+            fig_pie.update_traces(textposition="inside", textinfo="percent+label")
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-    fig_dept = px.bar(dept_stats, y='department', x='avg_threat_score', orientation='h',
-                      title="Average Threat Score by Department", color='avg_threat_score',
-                      color_continuous_scale=px.colors.sequential.OrRd)
-    fig_dept.update_traces(texttemplate="%{x:.2f}", textposition='inside')
-    st.plotly_chart(fig_dept, use_container_width=True)
-
-    fig_emp = px.pie(dept_stats, values='employee_count', names='department', title="Employees per Department",
-                     hole=0.3, color_discrete_sequence=px.colors.sequential.OrRd)
-    fig_emp.update_traces(textposition='inside', textinfo='percent+label')
-    st.plotly_chart(fig_emp, use_container_width=True)
-
-    st.markdown("### Threat Score Distribution")
-    fig_hist = px.histogram(dashboard_users, x='threat_score', nbins=20, title='Threat Scores')
+    st.markdown("### 📊 Threat Score Distribution")
+    fig_hist = px.histogram(dashboard_users, x="threat_score", nbins=20, title="Threat Score Distribution")
     st.plotly_chart(fig_hist, use_container_width=True)
 
 # Top Risky Users tab
@@ -439,6 +447,7 @@ with tab3:
                     st.write("- " + line)
             else:
                 st.info("User flagged as threat but no specific indicators found in activity logs.")
+
 
 
 
