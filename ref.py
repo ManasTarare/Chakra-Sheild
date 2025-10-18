@@ -440,4 +440,3 @@ with tab3:
             else:
                 st.info("User flagged as threat but no specific indicators found in activity logs.")
 
-
