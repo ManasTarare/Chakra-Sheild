@@ -67,7 +67,16 @@ def lstm_anomaly_detection(df):
         return pd.DataFrame(columns=['user_id', 'seq_start_idx', 'reconstruction_error', 'anomaly', 'timestamp'])
     user_sequences = np.vstack(user_sequences)
 
-    dataset = tf.data.Dataset.from_tensor_slices((user_sequences, user_sequences)).shuffle(1000).batch(64).prefetch(tf.data.AUTOTUNE)
+    # Manual train/validation split since validation_split unsupported on tf.data.Dataset
+    num_total = user_sequences.shape[0]
+    val_size = max(int(0.1 * num_total), 1)  # at least one sample in val
+    train_sequences = user_sequences[:-val_size]
+    val_sequences = user_sequences[-val_size:]
+
+    train_dataset = tf.data.Dataset.from_tensor_slices((train_sequences, train_sequences)) \
+        .shuffle(1000).batch(64).prefetch(tf.data.AUTOTUNE)
+    val_dataset = tf.data.Dataset.from_tensor_slices((val_sequences, val_sequences)) \
+        .batch(64).prefetch(tf.data.AUTOTUNE)
 
     input_dim = len(features)
     latent_dim = 32
@@ -81,9 +90,9 @@ def lstm_anomaly_detection(df):
     autoencoder.compile(optimizer='adam', loss='mse')
 
     early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
-    autoencoder.fit(dataset,
+    autoencoder.fit(train_dataset,
                     epochs=50,
-                    validation_split=0.1,
+                    validation_data=val_dataset,
                     shuffle=True,
                     callbacks=[early_stop],
                     verbose=1)
@@ -179,9 +188,7 @@ uploaded_file = st.file_uploader("Upload Activity Dataset CSV", type="csv",
 if uploaded_file is not None:
     activity_df = pd.read_csv(uploaded_file, parse_dates=['login_time', 'logout_time'])
     # Removed st.success messages to clean UI
-
     anomalies_df, threat_scores = run_processing(activity_df)
-    # Removed st.success messages to clean UI
 else:
     @st.cache_data(ttl=600)
     def load_dashboard_data():
