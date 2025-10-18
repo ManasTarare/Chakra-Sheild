@@ -271,7 +271,7 @@ with tab3:
         score = user_info['threat_score']
         last_seen = user_info['last_seen']
 
-        st.subheader(f"👤 {user_name} ({selected_user_id})")
+        st.subheader(f"👤 {user_name} ")
         st.write(f"**Department:** {dept}")
         st.write(f"**Current Threat Score:** {score}")
         st.write(f"**Last Seen:** {last_seen}")
@@ -439,4 +439,5 @@ with tab3:
                     st.write("- " + line)
             else:
                 st.info("User flagged as threat but no specific indicators found in activity logs.")
+
 
