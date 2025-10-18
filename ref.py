@@ -168,11 +168,11 @@ uploaded_file = st.file_uploader("Upload Activity Dataset CSV", type="csv",
 
 if uploaded_file is not None:
     activity_df = pd.read_csv(uploaded_file, parse_dates=['login_time', 'logout_time'])
-    st.success(f"Activity dataset loaded with {len(activity_df)} records.")
+    #st.success(f"Activity dataset loaded with {len(activity_df)} records.")
 
     anomalies_df, threat_scores = run_processing(activity_df)
-    st.success(f"Anomaly detection completed with {anomalies_df['anomaly'].sum()} anomalies found.")
-    st.success("Threat scoring completed.")
+    #st.success(f"Anomaly detection completed with {anomalies_df['anomaly'].sum()} anomalies found.")
+    #st.success("Threat scoring completed.")
 else:
     @st.cache_data(ttl=600)
     def load_dashboard_data():
@@ -439,5 +439,6 @@ with tab3:
                     st.write("- " + line)
             else:
                 st.info("User flagged as threat but no specific indicators found in activity logs.")
+
 
 
