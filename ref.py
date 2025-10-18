@@ -42,11 +42,11 @@ def lstm_anomaly_detection(df):
     df[features] = df[features].fillna(0)
     df.sort_values(['user_id', 'timestamp'], inplace=True, ignore_index=True)
 
-    scalers = {user: StandardScaler().fit(df.loc[df['user_id'] == user, features]) for user in df['user_id'].unique()}
-    for user, scaler in scalers.items():
-        df.loc[df['user_id'] == user, features] = scaler.transform(df.loc[df['user_id'] == user, features])
+    # Global scaler fitted on entire dataset
+    scaler = StandardScaler().fit(df[features])
+    df[features] = scaler.transform(df[features])
 
-    sequence_length = 10
+    sequence_length = 5  # Reduced sequence length
 
     def create_sequences(data, seq_length=sequence_length):
         data_array = data[features].to_numpy()
@@ -71,19 +71,26 @@ def lstm_anomaly_detection(df):
     input_dim = len(features)
     latent_dim = 32
     inputs = Input(shape=(sequence_length, input_dim))
-    encoded = Bidirectional(LSTM(latent_dim, activation='relu', dropout=0.2))(inputs)
+    encoded = Bidirectional(LSTM(latent_dim, dropout=0.2))(inputs)  # removed activation='relu'
     decoded = RepeatVector(sequence_length)(encoded)
-    decoded = Bidirectional(LSTM(input_dim, activation='relu', return_sequences=True, dropout=0.2))(decoded)
+    decoded = Bidirectional(LSTM(input_dim, return_sequences=True, dropout=0.2))(decoded)  # removed activation='relu'
     outputs = TimeDistributed(Dense(input_dim))(decoded)
 
     autoencoder = Model(inputs, outputs)
     autoencoder.compile(optimizer='adam', loss='mse')
 
-    early_stop = EarlyStopping(monitor='loss', patience=5, restore_best_weights=True)
-    autoencoder.fit(dataset, epochs=50, shuffle=True, callbacks=[early_stop], verbose=0)
+    early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+    autoencoder.fit(dataset,
+                    epochs=50,
+                    validation_split=0.1,
+                    shuffle=True,
+                    callbacks=[early_stop],
+                    verbose=1)  # verbose for training feedback
 
     reconstructions = autoencoder.predict(user_sequences, verbose=0)
     mse = np.mean(np.square(user_sequences - reconstructions), axis=(1, 2))
+
+    print("Reconstruction Error - min:", np.min(mse), "max:", np.max(mse), "mean:", np.mean(mse), "std:", np.std(mse))
 
     isolation_forest = IsolationForest(contamination=0.05, random_state=42)
     anomaly = (isolation_forest.fit_predict(mse.reshape(-1, 1)) == -1).astype(int)
@@ -95,6 +102,7 @@ def lstm_anomaly_detection(df):
 
     results.to_csv('lstm_anomalies.csv', index=False)
     return results
+
 
 
 def compute_threat_scores(anomalies_df):
@@ -447,6 +455,7 @@ with tab3:
                     st.write("- " + line)
             else:
                 st.info("User flagged as threat but no specific indicators found in activity logs.")
+
 
 
 
