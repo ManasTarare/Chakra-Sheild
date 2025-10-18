@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 import networkx as nx
 import matplotlib.pyplot as plt
 
+
 # Widen page layout
 st.set_page_config(page_title="Advanced Insider Threat Dashboard", layout="wide", initial_sidebar_state="expanded")
 
@@ -42,11 +43,11 @@ def lstm_anomaly_detection(df):
     df[features] = df[features].fillna(0)
     df.sort_values(['user_id', 'timestamp'], inplace=True, ignore_index=True)
 
-    # Global scaler fitted on entire dataset
+    # Global scaler fitted across all users
     scaler = StandardScaler().fit(df[features])
     df[features] = scaler.transform(df[features])
 
-    sequence_length = 5  # Reduced sequence length
+    sequence_length = 5  # Reduced sequence length for more sequences per user
 
     def create_sequences(data, seq_length=sequence_length):
         data_array = data[features].to_numpy()
@@ -71,9 +72,9 @@ def lstm_anomaly_detection(df):
     input_dim = len(features)
     latent_dim = 32
     inputs = Input(shape=(sequence_length, input_dim))
-    encoded = Bidirectional(LSTM(latent_dim, dropout=0.2))(inputs)  # removed activation='relu'
+    encoded = Bidirectional(LSTM(latent_dim, dropout=0.2))(inputs)  # Use default tanh activation
     decoded = RepeatVector(sequence_length)(encoded)
-    decoded = Bidirectional(LSTM(input_dim, return_sequences=True, dropout=0.2))(decoded)  # removed activation='relu'
+    decoded = Bidirectional(LSTM(input_dim, return_sequences=True, dropout=0.2))(decoded)  # Default tanh
     outputs = TimeDistributed(Dense(input_dim))(decoded)
 
     autoencoder = Model(inputs, outputs)
@@ -85,7 +86,7 @@ def lstm_anomaly_detection(df):
                     validation_split=0.1,
                     shuffle=True,
                     callbacks=[early_stop],
-                    verbose=1)  # verbose for training feedback
+                    verbose=1)
 
     reconstructions = autoencoder.predict(user_sequences, verbose=0)
     mse = np.mean(np.square(user_sequences - reconstructions), axis=(1, 2))
@@ -102,7 +103,6 @@ def lstm_anomaly_detection(df):
 
     results.to_csv('lstm_anomalies.csv', index=False)
     return results
-
 
 
 def compute_threat_scores(anomalies_df):
@@ -163,11 +163,13 @@ def compute_threat_scores(anomalies_df):
     user_scores.to_csv('enhanced_user_threat_scores.csv', index=False)
     return user_scores
 
+
 @st.cache_data(show_spinner=False)
 def run_processing(df):
     anomalies = lstm_anomaly_detection(df)
     scores = compute_threat_scores(anomalies)
     return anomalies, scores
+
 
 st.title("🚀 Insider Threat Detection Dashboard")
 
@@ -176,11 +178,10 @@ uploaded_file = st.file_uploader("Upload Activity Dataset CSV", type="csv",
 
 if uploaded_file is not None:
     activity_df = pd.read_csv(uploaded_file, parse_dates=['login_time', 'logout_time'])
-    #st.success(f"Activity dataset loaded with {len(activity_df)} records.")
+    # Removed st.success messages to clean UI
 
     anomalies_df, threat_scores = run_processing(activity_df)
-    #st.success(f"Anomaly detection completed with {anomalies_df['anomaly'].sum()} anomalies found.")
-    #st.success("Threat scoring completed.")
+    # Removed st.success messages to clean UI
 else:
     @st.cache_data(ttl=600)
     def load_dashboard_data():
@@ -204,7 +205,7 @@ if "department" not in activity_df.columns:
 
 employees = activity_df[["user_id", "user_name", "department"]].drop_duplicates()
 dashboard_users = employees.merge(threat_scores[['user_id', 'threat_score', 'last_seen', 'risk_level']],
-                                 on='user_id', how='left')
+                                  on='user_id', how='left')
 dashboard_users['threat_score'] = dashboard_users['threat_score'].fillna(0)
 dashboard_users['last_seen'] = pd.to_datetime(dashboard_users['last_seen'], errors='coerce')
 
@@ -418,14 +419,14 @@ with tab3:
                 marker=dict(color='#fa8072', size=20, line_width=2))
 
             fig_graph = go.Figure(data=[edge_trace, node_trace],
-                                  layout=go.Layout(
-                                      title="Threat Escalation Path",
-                                      showlegend=False,
-                                      hovermode='closest',
-                                      margin=dict(b=20, l=5, r=5, t=40),
-                                      xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                                      yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-                                  )
+                                 layout=go.Layout(
+                                     title="Threat Escalation Path",
+                                     showlegend=False,
+                                     hovermode='closest',
+                                     margin=dict(b=20, l=5, r=5, t=40),
+                                     xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                                     yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+                                 )
             st.plotly_chart(fig_graph, use_container_width=True)
 
         # Threat Explanation
@@ -455,8 +456,3 @@ with tab3:
                     st.write("- " + line)
             else:
                 st.info("User flagged as threat but no specific indicators found in activity logs.")
-
-
-
-
-
